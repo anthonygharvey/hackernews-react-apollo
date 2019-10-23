@@ -36,10 +36,6 @@ class LinkList extends Component {
           );
         }}
       </Query>
-
-      // <Query query={FEED_QUERY}>
-      //   {() => linksToRender.map(link => <Link key={link.id} link={link} />)}
-      // </Query>
     );
   }
 }
