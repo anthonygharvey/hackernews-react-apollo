@@ -55,7 +55,9 @@ class LinkList extends Component {
   }
 
   _updateCacheAfterVote = (store, createVote, linkId) => {
-    // 1. read the current state of the cached data
+    // 1. read the CURRENT state of the cached data
+    // readQuery never makes a request to the GraphQL server.  It will always read
+    // from the cache or throw an error if it's not in the store.
     const data = store.readQuery({ query: FEED_QUERY });
 
     // 2. get the link the user just voted for
@@ -63,7 +65,9 @@ class LinkList extends Component {
     // 3. reset its votes to the votes that were just returned by the server
     votedLink.votes = createVote.link.votes;
 
-    // 4. Write the modified data back to the store
+    // 4. Write the modified data back to the store (cache) so it's in sync with the server data
+    // Changes with writeQuery() are not persisted to the backend.
+    // Reloading will cause the changes to disappear.
     store.writeQuery({ query: FEED_QUERY, data });
   };
 }

@@ -35,7 +35,7 @@ class Link extends Component {
               mutation={VOTE_MUTATION}
               variables={{ linkId: this.props.link.id }}
               // update will be called directly after the server returned the response
-              // it receives the payload of the mutation (data) and the current cache (store)
+              // it receives the payload of the mutation (data) and the CURRENT cache (store)
               update={(store, { data: { vote } }) => {
                 this.props.updateStoreAfterVote(
                   store,
