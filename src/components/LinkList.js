@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import Link from "./Link";
 import gql from "graphql-tag";
 import { Query } from "react-apollo";
+import { subscribe } from "graphql";
 
 export const FEED_QUERY = gql`
   {
@@ -26,14 +27,64 @@ export const FEED_QUERY = gql`
   }
 `;
 
+const NEW_LINKS_SUBSCRIPTION = gql`
+  subscription {
+    newLink {
+      id
+      url
+      description
+      createdAt
+      postedBy {
+        id
+        name
+      }
+      votes {
+        id
+        user {
+          id
+        }
+      }
+    }
+  }
+`;
+
+const NEW_VOTES_SUBSCRIPTION = gql`
+  subscription {
+    newVote {
+      id
+      link {
+        id
+        url
+        description
+        createdAt
+        postedBy {
+          id
+          name
+        }
+        votes {
+          id
+          user {
+            id
+          }
+        }
+      }
+      user {
+        id
+      }
+    }
+  }
+`;
+
 class LinkList extends Component {
   render() {
     return (
       <Query query={FEED_QUERY}>
         {/* render prop function */}
-        {({ loading, error, data }) => {
+        {({ loading, error, data, subscribeToMore }) => {
           if (loading) return <div>Fetching</div>;
           if (error) return <div>Error</div>;
+
+          this._subscribeToNewLinks(subscribeToMore);
 
           const linksToRender = data.feed.links;
 
@@ -69,6 +120,42 @@ class LinkList extends Component {
     // Changes with writeQuery() are not persisted to the backend.
     // Reloading will cause the changes to disappear.
     store.writeQuery({ query: FEED_QUERY, data });
+  };
+
+  _subscribeToNewLinks = subscribeToMore => {
+    subscribeToMore({
+      // the subscription query itself.  will fire everytime a new link is created
+      document: NEW_LINKS_SUBSCRIPTION,
+
+      // (similar to 'update' prop) lets you determine how the store should be updated with the info
+      // sent by the server AFTER the event occured.
+      // follows same principle as Redux reducer; takes two args:
+      // previous state and the subscription data sent by the server
+      updateQuery: (prev, { subscriptionData }) => {
+        if (!subscriptionData.data) return prev;
+        // get the newLink from subscriptionData
+        const newLink = subscriptionData.data.newLink;
+
+        // guard if it already exists
+        const exists = prev.feed.links.find(({ id }) => id === newLink.id);
+        if (exists) return prev;
+
+        // merge the newLink into the existing links and return
+        return Object.assign({}, prev, {
+          feed: {
+            links: [newLink, ...prev.feed.links],
+            count: prev.feed.links.length + 1,
+            __typename: prev.feed.__typename
+          }
+        });
+      }
+    });
+  };
+
+  _subscribeToNewVotes = subscribeToMore => {
+    subscribeToMore({
+      document: NEW_VOTES_SUBSCRIPTION
+    });
   };
 }
 
